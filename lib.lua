@@ -136,14 +136,14 @@ function Phantom:CreateWindow(config)
         Parent = TitleBar,
     })
     
-    -- Tab Container - FIXED: ClipsDescendants = true to prevent overflow
+    -- Tab Container
     local TabContainer = CreateElement("Frame", {
         Name = "TabContainer",
-        Size = UDim2.new(1, 0, 0, 26),
+        Size = UDim2.new(1, 0, 0, 25),
         Position = UDim2.new(0, 0, 0, 28),
-        BackgroundColor3 = Theme.BackgroundSecondary,
+        BackgroundColor3 = Theme.Header,
         BorderSizePixel = 0,
-        ClipsDescendants = true,  -- CHANGED: true instead of false
+        ClipsDescendants = true,
         ZIndex = 3,
         Parent = MainFrame,
     })
@@ -159,7 +159,7 @@ function Phantom:CreateWindow(config)
     local TabLayout = CreateElement("UIListLayout", {
         FillDirection = Enum.FillDirection.Horizontal,
         SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 4),
+        Padding = UDim.new(0, 2),
         HorizontalAlignment = Enum.HorizontalAlignment.Center,
         VerticalAlignment = Enum.VerticalAlignment.Center,
         Parent = TabContainer,
@@ -178,8 +178,8 @@ function Phantom:CreateWindow(config)
     -- Content Container
     local ContentContainer = CreateElement("Frame", {
         Name = "ContentContainer",
-        Size = UDim2.new(1, 0, 1, -54),
-        Position = UDim2.new(0, 0, 0, 54),
+        Size = UDim2.new(1, 0, 1, -53),
+        Position = UDim2.new(0, 0, 0, 53),
         BackgroundTransparency = 1,
         ClipsDescendants = true,
         ZIndex = 1,
@@ -239,12 +239,13 @@ function Phantom:CreateWindow(config)
         -- Tab Button
         local TabButton = CreateElement("TextButton", {
             Name = "TabButton_" .. Tab.Name,
-            Size = UDim2.new(0, 80, 1, -4),
-            BackgroundTransparency = 1,
+            Size = UDim2.new(0, 80, 1, 0),
+            BackgroundColor3 = Theme.Header,
+            BorderSizePixel = 0,
             Text = Tab.Name,
             TextColor3 = Theme.TextDark,
             Font = Enum.Font.Code,
-            TextSize = 11,
+            TextSize = 12,
             AutoButtonColor = false,
             LayoutOrder = Tab.LayoutOrder,
             ZIndex = 4,
