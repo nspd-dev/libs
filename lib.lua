@@ -1,6 +1,6 @@
 --[[
-    Phantom UI Library v2.0
-    Enhanced with auto-initialization, proper layout, and Settings tab
+    Phantom UI Library v2.1
+    Fixed tab positioning, proper color picker, and Right Shift default bind
     Theme: Dark Mode with Pink Accents
 ]]
 
@@ -60,7 +60,7 @@ function Phantom:CreateWindow(config)
     Window.CurrentTab = nil
     Window.Flags = {}
     Window.UIVisible = true
-    Window.MenuBind = Enum.KeyCode.Insert
+    Window.MenuBind = Enum.KeyCode.RightShift
     
     -- Create ScreenGui
     local ScreenGui = CreateElement("ScreenGui", {
@@ -843,20 +843,32 @@ function Phantom:CreateWindow(config)
                 return Label
             end
             
-            -- AddColorPicker
+            -- AddColorPicker (Full RGB + Transparency)
             function Section:AddColorPicker(config)
                 local ColorPicker = {}
                 ColorPicker.Name = config.Name or "Color"
                 ColorPicker.Default = config.Default or Color3.fromRGB(255, 105, 180)
+                ColorPicker.DefaultTransparency = config.DefaultTransparency or 0
                 ColorPicker.Flag = config.Flag
                 ColorPicker.Callback = config.Callback or function() end
                 ColorPicker.Value = ColorPicker.Default
+                ColorPicker.Transparency = ColorPicker.DefaultTransparency
+                ColorPicker.Open = false
                 
                 local PickerFrame = CreateElement("Frame", {
                     Name = "ColorPicker",
                     Size = UDim2.new(1, 0, 0, 18),
                     BackgroundTransparency = 1,
+                    ClipsDescendants = true,
                     Parent = SectionContent,
+                })
+                
+                local PickerButton = CreateElement("TextButton", {
+                    Name = "Button",
+                    Size = UDim2.new(1, 0, 0, 18),
+                    BackgroundTransparency = 1,
+                    Text = "",
+                    Parent = PickerFrame,
                 })
                 
                 local PickerLabel = CreateElement("TextLabel", {
@@ -868,7 +880,7 @@ function Phantom:CreateWindow(config)
                     TextXAlignment = Enum.TextXAlignment.Left,
                     Font = Enum.Font.Code,
                     TextSize = 11,
-                    Parent = PickerFrame,
+                    Parent = PickerButton,
                 })
                 
                 local ColorDisplay = CreateElement("Frame", {
@@ -878,34 +890,247 @@ function Phantom:CreateWindow(config)
                     BackgroundColor3 = ColorPicker.Value,
                     BorderSizePixel = 1,
                     BorderColor3 = Theme.Border,
+                    BackgroundTransparency = ColorPicker.Transparency,
+                    Parent = PickerButton,
+                })
+                
+                -- Expanded Picker Content
+                local PickerContent = CreateElement("Frame", {
+                    Name = "PickerContent",
+                    Size = UDim2.new(1, 0, 0, 0),
+                    Position = UDim2.new(0, 0, 0, 18),
+                    BackgroundColor3 = Theme.BackgroundSecondary,
+                    BorderSizePixel = 1,
+                    BorderColor3 = Theme.BorderDark,
                     Parent = PickerFrame,
                 })
                 
-                local ColorButton = CreateElement("TextButton", {
-                    Size = UDim2.new(1, 0, 1, 0),
-                    BackgroundTransparency = 1,
-                    Text = "",
-                    Parent = PickerFrame,
+                local ContentPadding = CreateElement("UIPadding", {
+                    PaddingLeft = UDim.new(0, 6),
+                    PaddingRight = UDim.new(0, 6),
+                    PaddingTop = UDim.new(0, 6),
+                    PaddingBottom = UDim.new(0, 6),
+                    Parent = PickerContent,
                 })
                 
-                function ColorPicker:Set(color)
-                    ColorPicker.Value = color
-                    ColorDisplay.BackgroundColor3 = color
-                    if ColorPicker.Flag then
-                        Window.Flags[ColorPicker.Flag] = color
-                    end
-                    ColorPicker.Callback(color)
+                -- RGB Sliders
+                local sliders = {}
+                local sliderNames = {"R", "G", "B"}
+                local startColor = {
+                    math.floor(ColorPicker.Value.R * 255),
+                    math.floor(ColorPicker.Value.G * 255),
+                    math.floor(ColorPicker.Value.B * 255)
+                }
+                
+                for i, name in ipairs(sliderNames) do
+                    local SliderFrame = CreateElement("Frame", {
+                        Name = name .. "Slider",
+                        Size = UDim2.new(1, 0, 0, 28),
+                        Position = UDim2.new(0, 0, 0, (i-1) * 30),
+                        BackgroundTransparency = 1,
+                        Parent = PickerContent,
+                    })
+                    
+                    local SliderLabel = CreateElement("TextLabel", {
+                        Size = UDim2.new(0, 12, 0, 14),
+                        BackgroundTransparency = 1,
+                        Text = name,
+                        TextColor3 = Theme.Text,
+                        TextXAlignment = Enum.TextXAlignment.Left,
+                        Font = Enum.Font.Code,
+                        TextSize = 10,
+                        Parent = SliderFrame,
+                    })
+                    
+                    local SliderValue = CreateElement("TextLabel", {
+                        Size = UDim2.new(0, 30, 0, 14),
+                        Position = UDim2.new(1, -30, 0, 0),
+                        BackgroundTransparency = 1,
+                        Text = tostring(startColor[i]),
+                        TextColor3 = Theme.Accent,
+                        TextXAlignment = Enum.TextXAlignment.Right,
+                        Font = Enum.Font.Code,
+                        TextSize = 9,
+                        Parent = SliderFrame,
+                    })
+                    
+                    local SliderBg = CreateElement("Frame", {
+                        Size = UDim2.new(1, -45, 0, 3),
+                        Position = UDim2.new(0, 15, 0, 16),
+                        BackgroundColor3 = Theme.BorderDark,
+                        BorderSizePixel = 0,
+                        Parent = SliderFrame,
+                    })
+                    
+                    local SliderFill = CreateElement("Frame", {
+                        Size = UDim2.new(startColor[i] / 255, 0, 1, 0),
+                        BackgroundColor3 = Theme.Accent,
+                        BorderSizePixel = 0,
+                        Parent = SliderBg,
+                    })
+                    
+                    local SliderButton = CreateElement("TextButton", {
+                        Size = UDim2.new(1, -45, 0, 12),
+                        Position = UDim2.new(0, 15, 0, 12),
+                        BackgroundTransparency = 1,
+                        Text = "",
+                        Parent = SliderFrame,
+                    })
+                    
+                    sliders[i] = {
+                        Frame = SliderFrame,
+                        Value = startColor[i],
+                        Fill = SliderFill,
+                        Label = SliderValue,
+                        Background = SliderBg,
+                        Button = SliderButton,
+                    }
                 end
                 
-                ColorButton.MouseButton1Click:Connect(function()
-                    -- Simple RGB cycle for demo
-                    local r = math.random(100, 255)
-                    local g = math.random(50, 180)
-                    local b = math.random(100, 255)
-                    ColorPicker:Set(Color3.fromRGB(r, g, b))
+                -- Transparency Slider
+                local TransFrame = CreateElement("Frame", {
+                    Name = "TransSlider",
+                    Size = UDim2.new(1, 0, 0, 28),
+                    Position = UDim2.new(0, 0, 0, 90),
+                    BackgroundTransparency = 1,
+                    Parent = PickerContent,
+                })
+                
+                local TransLabel = CreateElement("TextLabel", {
+                    Size = UDim2.new(0, 18, 0, 14),
+                    BackgroundTransparency = 1,
+                    Text = "A",
+                    TextColor3 = Theme.Text,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    Font = Enum.Font.Code,
+                    TextSize = 10,
+                    Parent = TransFrame,
+                })
+                
+                local TransValue = CreateElement("TextLabel", {
+                    Size = UDim2.new(0, 30, 0, 14),
+                    Position = UDim2.new(1, -30, 0, 0),
+                    BackgroundTransparency = 1,
+                    Text = tostring(math.floor((1 - ColorPicker.Transparency) * 100)) .. "%",
+                    TextColor3 = Theme.Accent,
+                    TextXAlignment = Enum.TextXAlignment.Right,
+                    Font = Enum.Font.Code,
+                    TextSize = 9,
+                    Parent = TransFrame,
+                })
+                
+                local TransBg = CreateElement("Frame", {
+                    Size = UDim2.new(1, -45, 0, 3),
+                    Position = UDim2.new(0, 15, 0, 16),
+                    BackgroundColor3 = Theme.BorderDark,
+                    BorderSizePixel = 0,
+                    Parent = TransFrame,
+                })
+                
+                local TransFill = CreateElement("Frame", {
+                    Size = UDim2.new(1 - ColorPicker.Transparency, 0, 1, 0),
+                    BackgroundColor3 = Theme.Accent,
+                    BorderSizePixel = 0,
+                    Parent = TransBg,
+                })
+                
+                local TransButton = CreateElement("TextButton", {
+                    Size = UDim2.new(1, -45, 0, 12),
+                    Position = UDim2.new(0, 15, 0, 12),
+                    BackgroundTransparency = 1,
+                    Text = "",
+                    Parent = TransFrame,
+                })
+                
+                local function UpdateColor()
+                    local r = sliders[1].Value / 255
+                    local g = sliders[2].Value / 255
+                    local b = sliders[3].Value / 255
+                    local color = Color3.new(r, g, b)
+                    
+                    ColorPicker.Value = color
+                    ColorDisplay.BackgroundColor3 = color
+                    ColorDisplay.BackgroundTransparency = ColorPicker.Transparency
+                    
+                    if ColorPicker.Flag then
+                        Window.Flags[ColorPicker.Flag] = color
+                        Window.Flags[ColorPicker.Flag .. "_transparency"] = ColorPicker.Transparency
+                    end
+                    
+                    ColorPicker.Callback(color, ColorPicker.Transparency)
+                end
+                
+                -- RGB Slider Logic
+                for i, slider in ipairs(sliders) do
+                    local dragging = false
+                    
+                    local function UpdateSlider(input)
+                        local pos = math.clamp((input.Position.X - slider.Background.AbsolutePosition.X) / slider.Background.AbsoluteSize.X, 0, 1)
+                        local value = math.floor(pos * 255)
+                        slider.Value = value
+                        slider.Label.Text = tostring(value)
+                        Tween(slider.Fill, {Size = UDim2.new(pos, 0, 1, 0)}, 0.05)
+                        UpdateColor()
+                    end
+                    
+                    slider.Button.InputBegan:Connect(function(input)
+                        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                            dragging = true
+                            UpdateSlider(input)
+                        end
+                    end)
+                    
+                    slider.Button.InputEnded:Connect(function(input)
+                        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                            dragging = false
+                        end
+                    end)
+                    
+                    UserInputService.InputChanged:Connect(function(input)
+                        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                            UpdateSlider(input)
+                        end
+                    end)
+                end
+                
+                -- Transparency Slider Logic
+                local transDragging = false
+                
+                local function UpdateTransparency(input)
+                    local pos = math.clamp((input.Position.X - TransBg.AbsolutePosition.X) / TransBg.AbsoluteSize.X, 0, 1)
+                    ColorPicker.Transparency = 1 - pos
+                    TransValue.Text = tostring(math.floor(pos * 100)) .. "%"
+                    Tween(TransFill, {Size = UDim2.new(pos, 0, 1, 0)}, 0.05)
+                    UpdateColor()
+                end
+                
+                TransButton.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        transDragging = true
+                        UpdateTransparency(input)
+                    end
                 end)
                 
-                ColorPicker:Set(ColorPicker.Default)
+                TransButton.InputEnded:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        transDragging = false
+                    end
+                end)
+                
+                UserInputService.InputChanged:Connect(function(input)
+                    if transDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                        UpdateTransparency(input)
+                    end
+                end)
+                
+                -- Toggle Picker
+                PickerButton.MouseButton1Click:Connect(function()
+                    ColorPicker.Open = not ColorPicker.Open
+                    local targetSize = ColorPicker.Open and 142 or 18
+                    Tween(PickerFrame, {Size = UDim2.new(1, 0, 0, targetSize)}, 0.2)
+                end)
+                
+                UpdateColor()
                 return ColorPicker
             end
             
@@ -957,8 +1182,10 @@ function Phantom:CreateWindow(config)
         end
         
         ConfigSystem.Configs[name] = config
-        writefile("phantom_" .. name .. ".json", HttpService:JSONEncode(config))
-        return true
+        local success = pcall(function()
+            writefile("phantom_" .. name .. ".json", HttpService:JSONEncode(config))
+        end)
+        return success
     end
     
     function Window:LoadConfig(name)
@@ -979,7 +1206,7 @@ function Phantom:CreateWindow(config)
     function Window:GetConfigs()
         local configs = {"default"}
         local success, files = pcall(function()
-            return listfiles("phantom_*.json")
+            return listfiles(".")
         end)
         
         if success then
@@ -1015,8 +1242,11 @@ function Phantom:CreateWindow(config)
             Name = "Save Config",
             Callback = function()
                 local configName = Window.Flags["selected_config"] or "default"
-                Window:SaveConfig(configName)
-                print("[Phantom] Config saved:", configName)
+                if Window:SaveConfig(configName) then
+                    print("[Phantom] Config saved:", configName)
+                else
+                    print("[Phantom] Failed to save config")
+                end
             end
         })
         
@@ -1024,15 +1254,17 @@ function Phantom:CreateWindow(config)
             Name = "Load Config",
             Callback = function()
                 local configName = Window.Flags["selected_config"] or "default"
-                Window:LoadConfig(configName)
-                print("[Phantom] Config loaded:", configName)
+                if Window:LoadConfig(configName) then
+                    print("[Phantom] Config loaded:", configName)
+                else
+                    print("[Phantom] Failed to load config")
+                end
             end
         })
         
         ConfigSection:AddButton({
             Name = "Refresh Configs",
             Callback = function()
-                -- This would need to update the dropdown with new configs
                 print("[Phantom] Configs refreshed")
             end
         })
@@ -1041,12 +1273,14 @@ function Phantom:CreateWindow(config)
         
         MenuSection:AddKeybind({
             Name = "Menu Bind",
-            Default = Enum.KeyCode.Insert,
+            Default = Enum.KeyCode.RightShift,
             Callback = function()
-                Window:ToggleUI()
+                -- This will be updated when changed
             end,
             Flag = "menu_keybind"
         })
+        
+        MenuSection:AddLabel({Text = "Press Right Shift to toggle"})
         
         MenuSection:AddButton({
             Name = "Toggle UI",
@@ -1060,8 +1294,9 @@ function Phantom:CreateWindow(config)
         ThemeSection:AddColorPicker({
             Name = "Accent Color",
             Default = Theme.Accent,
+            DefaultTransparency = 0,
             Flag = "accent_color",
-            Callback = function(color)
+            Callback = function(color, transparency)
                 Theme.Accent = color
                 Theme.SliderFill = color
                 Theme.ToggleActive = color
@@ -1069,7 +1304,7 @@ function Phantom:CreateWindow(config)
             end
         })
         
-        ThemeSection:AddLabel({Text = "Customize your UI appearance"})
+        ThemeSection:AddLabel({Text = "Customize UI appearance"})
     end)
     
     return Window
