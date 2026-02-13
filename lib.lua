@@ -149,10 +149,10 @@ function Phantom:CreateWindow(config)
     })
     
     local TabContainerPadding = CreateElement("UIPadding", {
-        PaddingLeft = UDim.new(0, 8),
-        PaddingTop = UDim.new(0, 2),
-        PaddingRight = UDim.new(0, 8),
-        PaddingBottom = UDim.new(0, 2),
+        PaddingLeft = UDim.new(0, 0),
+        PaddingTop = UDim.new(0, 0),
+        PaddingRight = UDim.new(0, 0),
+        PaddingBottom = UDim.new(0, 0),
         Parent = TabContainer,
     })
     
@@ -160,7 +160,7 @@ function Phantom:CreateWindow(config)
         FillDirection = Enum.FillDirection.Horizontal,
         SortOrder = Enum.SortOrder.LayoutOrder,
         Padding = UDim.new(0, 4),
-        HorizontalAlignment = Enum.HorizontalAlignment.Left,
+        HorizontalAlignment = Enum.HorizontalAlignment.Center,
         VerticalAlignment = Enum.VerticalAlignment.Center,
         Parent = TabContainer,
     })
