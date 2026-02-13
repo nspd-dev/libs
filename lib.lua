@@ -1,6 +1,6 @@
 --[[
-    Phantom UI Library v2.1
-    Fixed tab positioning, proper color picker, and Right Shift default bind
+    Phantom UI Library v2.2
+    FIXED: Tab positioning issue - tabs now properly contained in menu
     Theme: Dark Mode with Pink Accents
 ]]
 
@@ -85,6 +85,7 @@ function Phantom:CreateWindow(config)
         BackgroundColor3 = Theme.Background,
         BorderSizePixel = 1,
         BorderColor3 = Theme.Border,
+        ClipsDescendants = false,
         Parent = ScreenGui,
     })
     
@@ -96,6 +97,7 @@ function Phantom:CreateWindow(config)
         BackgroundTransparency = 1,
         BorderSizePixel = 1,
         BorderColor3 = Theme.BorderDark,
+        ZIndex = 2,
         Parent = MainFrame,
     })
     
@@ -103,8 +105,10 @@ function Phantom:CreateWindow(config)
     local TitleBar = CreateElement("Frame", {
         Name = "TitleBar",
         Size = UDim2.new(1, 0, 0, 28),
+        Position = UDim2.new(0, 0, 0, 0),
         BackgroundColor3 = Theme.Header,
         BorderSizePixel = 0,
+        ZIndex = 3,
         Parent = MainFrame,
     })
     
@@ -118,15 +122,17 @@ function Phantom:CreateWindow(config)
         TextXAlignment = Enum.TextXAlignment.Left,
         Font = Enum.Font.Code,
         TextSize = 13,
+        ZIndex = 3,
         Parent = TitleBar,
     })
     
     local TitleBarBorder = CreateElement("Frame", {
         Name = "Border",
         Size = UDim2.new(1, 0, 0, 1),
-        Position = UDim2.new(0, 0, 1, 0),
+        Position = UDim2.new(0, 0, 1, -1),
         BackgroundColor3 = Theme.Border,
         BorderSizePixel = 0,
+        ZIndex = 3,
         Parent = TitleBar,
     })
     
@@ -137,11 +143,14 @@ function Phantom:CreateWindow(config)
         Position = UDim2.new(0, 0, 0, 28),
         BackgroundColor3 = Theme.BackgroundSecondary,
         BorderSizePixel = 0,
+        ClipsDescendants = false,
+        ZIndex = 3,
         Parent = MainFrame,
     })
     
     local TabContainerPadding = CreateElement("UIPadding", {
         PaddingLeft = UDim.new(0, 4),
+        PaddingTop = UDim.new(0, 2),
         Parent = TabContainer,
     })
     
@@ -155,9 +164,10 @@ function Phantom:CreateWindow(config)
     local TabBorder = CreateElement("Frame", {
         Name = "Border",
         Size = UDim2.new(1, 0, 0, 1),
-        Position = UDim2.new(0, 0, 1, 0),
+        Position = UDim2.new(0, 0, 1, -1),
         BackgroundColor3 = Theme.Border,
         BorderSizePixel = 0,
+        ZIndex = 3,
         Parent = TabContainer,
     })
     
@@ -168,6 +178,7 @@ function Phantom:CreateWindow(config)
         Position = UDim2.new(0, 0, 0, 54),
         BackgroundTransparency = 1,
         ClipsDescendants = true,
+        ZIndex = 1,
         Parent = MainFrame,
     })
     
@@ -224,7 +235,7 @@ function Phantom:CreateWindow(config)
         -- Tab Button
         local TabButton = CreateElement("TextButton", {
             Name = "TabButton_" .. Tab.Name,
-            Size = UDim2.new(0, 75, 1, -4),
+            Size = UDim2.new(0, 75, 0, 22),
             BackgroundTransparency = 1,
             Text = Tab.Name,
             TextColor3 = Theme.TextDark,
@@ -232,6 +243,7 @@ function Phantom:CreateWindow(config)
             TextSize = 11,
             AutoButtonColor = false,
             LayoutOrder = Tab.LayoutOrder,
+            ZIndex = 4,
             Parent = TabContainer,
         })
         
@@ -242,6 +254,7 @@ function Phantom:CreateWindow(config)
             BackgroundColor3 = Theme.Accent,
             BorderSizePixel = 0,
             BackgroundTransparency = 1,
+            ZIndex = 4,
             Parent = TabButton,
         })
         
@@ -251,6 +264,7 @@ function Phantom:CreateWindow(config)
             Size = UDim2.new(1, 0, 1, 0),
             BackgroundTransparency = 1,
             Visible = false,
+            ZIndex = 1,
             Parent = ContentContainer,
         })
         
@@ -265,6 +279,7 @@ function Phantom:CreateWindow(config)
             ScrollBarImageColor3 = Theme.Accent,
             CanvasSize = UDim2.new(0, 0, 0, 0),
             AutomaticCanvasSize = Enum.AutomaticSize.Y,
+            ZIndex = 1,
             Parent = TabContent,
         })
         
@@ -285,6 +300,7 @@ function Phantom:CreateWindow(config)
             ScrollBarImageColor3 = Theme.Accent,
             CanvasSize = UDim2.new(0, 0, 0, 0),
             AutomaticCanvasSize = Enum.AutomaticSize.Y,
+            ZIndex = 1,
             Parent = TabContent,
         })
         
