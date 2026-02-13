@@ -1,6 +1,6 @@
 --[[
-    Phantom UI Library
-    A sleek, modular UI library for Roblox
+    Phantom UI Library v2.0
+    Enhanced with auto-initialization, proper layout, and Settings tab
     Theme: Dark Mode with Pink Accents
 ]]
 
@@ -13,18 +13,27 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
+local HttpService = game:GetService("HttpService")
 
 -- Theme
 local Theme = {
     Background = Color3.fromRGB(15, 15, 15),
-    Border = Color3.fromRGB(45, 45, 45),
-    Header = Color3.fromRGB(20, 20, 20),
+    BackgroundSecondary = Color3.fromRGB(20, 20, 20),
+    Border = Color3.fromRGB(50, 50, 50),
+    BorderDark = Color3.fromRGB(35, 35, 35),
+    Header = Color3.fromRGB(18, 18, 18),
     Accent = Color3.fromRGB(255, 105, 180),
     AccentDark = Color3.fromRGB(180, 75, 130),
     Text = Color3.fromRGB(220, 220, 220),
     TextDark = Color3.fromRGB(150, 150, 150),
     SliderFill = Color3.fromRGB(255, 105, 180),
     ToggleActive = Color3.fromRGB(255, 105, 180),
+}
+
+-- Config Storage
+local ConfigSystem = {
+    CurrentConfig = "default",
+    Configs = {},
 }
 
 -- Utility Functions
@@ -50,6 +59,8 @@ function Phantom:CreateWindow(config)
     Window.Tabs = {}
     Window.CurrentTab = nil
     Window.Flags = {}
+    Window.UIVisible = true
+    Window.MenuBind = Enum.KeyCode.Insert
     
     -- Create ScreenGui
     local ScreenGui = CreateElement("ScreenGui", {
@@ -69,18 +80,29 @@ function Phantom:CreateWindow(config)
     -- Main Frame
     local MainFrame = CreateElement("Frame", {
         Name = "MainFrame",
-        Size = UDim2.new(0, 650, 0, 500),
-        Position = UDim2.new(0.5, -325, 0.5, -250),
+        Size = UDim2.new(0, 700, 0, 520),
+        Position = UDim2.new(0.5, -350, 0.5, -260),
         BackgroundColor3 = Theme.Background,
         BorderSizePixel = 1,
         BorderColor3 = Theme.Border,
         Parent = ScreenGui,
     })
     
+    -- Inset border effect
+    local InnerBorder = CreateElement("Frame", {
+        Name = "InnerBorder",
+        Size = UDim2.new(1, -2, 1, -2),
+        Position = UDim2.new(0, 1, 0, 1),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 1,
+        BorderColor3 = Theme.BorderDark,
+        Parent = MainFrame,
+    })
+    
     -- Title Bar
     local TitleBar = CreateElement("Frame", {
         Name = "TitleBar",
-        Size = UDim2.new(1, 0, 0, 30),
+        Size = UDim2.new(1, 0, 0, 28),
         BackgroundColor3 = Theme.Header,
         BorderSizePixel = 0,
         Parent = MainFrame,
@@ -89,24 +111,38 @@ function Phantom:CreateWindow(config)
     local TitleLabel = CreateElement("TextLabel", {
         Name = "Title",
         Size = UDim2.new(1, -10, 1, 0),
-        Position = UDim2.new(0, 10, 0, 0),
+        Position = UDim2.new(0, 8, 0, 0),
         BackgroundTransparency = 1,
         Text = config.Name or "Phantom",
         TextColor3 = Theme.Text,
         TextXAlignment = Enum.TextXAlignment.Left,
         Font = Enum.Font.Code,
-        TextSize = 14,
+        TextSize = 13,
+        Parent = TitleBar,
+    })
+    
+    local TitleBarBorder = CreateElement("Frame", {
+        Name = "Border",
+        Size = UDim2.new(1, 0, 0, 1),
+        Position = UDim2.new(0, 0, 1, 0),
+        BackgroundColor3 = Theme.Border,
+        BorderSizePixel = 0,
         Parent = TitleBar,
     })
     
     -- Tab Container
     local TabContainer = CreateElement("Frame", {
         Name = "TabContainer",
-        Size = UDim2.new(1, 0, 0, 25),
-        Position = UDim2.new(0, 0, 0, 30),
-        BackgroundColor3 = Theme.Header,
+        Size = UDim2.new(1, 0, 0, 26),
+        Position = UDim2.new(0, 0, 0, 28),
+        BackgroundColor3 = Theme.BackgroundSecondary,
         BorderSizePixel = 0,
         Parent = MainFrame,
+    })
+    
+    local TabContainerPadding = CreateElement("UIPadding", {
+        PaddingLeft = UDim.new(0, 4),
+        Parent = TabContainer,
     })
     
     local TabLayout = CreateElement("UIListLayout", {
@@ -116,12 +152,22 @@ function Phantom:CreateWindow(config)
         Parent = TabContainer,
     })
     
+    local TabBorder = CreateElement("Frame", {
+        Name = "Border",
+        Size = UDim2.new(1, 0, 0, 1),
+        Position = UDim2.new(0, 0, 1, 0),
+        BackgroundColor3 = Theme.Border,
+        BorderSizePixel = 0,
+        Parent = TabContainer,
+    })
+    
     -- Content Container
     local ContentContainer = CreateElement("Frame", {
         Name = "ContentContainer",
-        Size = UDim2.new(1, 0, 1, -55),
-        Position = UDim2.new(0, 0, 0, 55),
+        Size = UDim2.new(1, 0, 1, -54),
+        Position = UDim2.new(0, 0, 0, 54),
         BackgroundTransparency = 1,
+        ClipsDescendants = true,
         Parent = MainFrame,
     })
     
@@ -155,23 +201,37 @@ function Phantom:CreateWindow(config)
         end
     end)
     
+    -- Menu Toggle Keybind
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if not gameProcessed and input.KeyCode == Window.MenuBind then
+            Window:ToggleUI()
+        end
+    end)
+    
+    -- ToggleUI Method
+    function Window:ToggleUI()
+        Window.UIVisible = not Window.UIVisible
+        MainFrame.Visible = Window.UIVisible
+    end
+    
     -- CreateTab Method
     function Window:CreateTab(config)
         local Tab = {}
         Tab.Sections = {Left = {}, Right = {}}
         Tab.Name = config.Name or "Tab"
+        Tab.LayoutOrder = #Window.Tabs + 1
         
         -- Tab Button
         local TabButton = CreateElement("TextButton", {
-            Name = "TabButton",
-            Size = UDim2.new(0, 80, 1, 0),
-            BackgroundColor3 = Theme.Header,
-            BorderSizePixel = 0,
+            Name = "TabButton_" .. Tab.Name,
+            Size = UDim2.new(0, 75, 1, -4),
+            BackgroundTransparency = 1,
             Text = Tab.Name,
             TextColor3 = Theme.TextDark,
             Font = Enum.Font.Code,
-            TextSize = 12,
+            TextSize = 11,
             AutoButtonColor = false,
+            LayoutOrder = Tab.LayoutOrder,
             Parent = TabContainer,
         })
         
@@ -187,41 +247,58 @@ function Phantom:CreateWindow(config)
         
         -- Tab Content
         local TabContent = CreateElement("Frame", {
-            Name = "TabContent",
+            Name = "TabContent_" .. Tab.Name,
             Size = UDim2.new(1, 0, 1, 0),
             BackgroundTransparency = 1,
             Visible = false,
             Parent = ContentContainer,
         })
         
-        -- Left and Right Columns
-        local LeftColumn = CreateElement("Frame", {
-            Name = "LeftColumn",
-            Size = UDim2.new(0.5, -5, 1, 0),
-            Position = UDim2.new(0, 5, 0, 0),
+        -- ScrollingFrame for Left Column
+        local LeftScroll = CreateElement("ScrollingFrame", {
+            Name = "LeftScroll",
+            Size = UDim2.new(0.5, -8, 1, -8),
+            Position = UDim2.new(0, 6, 0, 6),
             BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            ScrollBarThickness = 4,
+            ScrollBarImageColor3 = Theme.Accent,
+            CanvasSize = UDim2.new(0, 0, 0, 0),
+            AutomaticCanvasSize = Enum.AutomaticSize.Y,
             Parent = TabContent,
         })
         
         local LeftLayout = CreateElement("UIListLayout", {
             SortOrder = Enum.SortOrder.LayoutOrder,
             Padding = UDim.new(0, 8),
-            Parent = LeftColumn,
+            Parent = LeftScroll,
         })
         
-        local RightColumn = CreateElement("Frame", {
-            Name = "RightColumn",
-            Size = UDim2.new(0.5, -5, 1, 0),
-            Position = UDim2.new(0.5, 0, 0, 0),
+        -- ScrollingFrame for Right Column
+        local RightScroll = CreateElement("ScrollingFrame", {
+            Name = "RightScroll",
+            Size = UDim2.new(0.5, -8, 1, -8),
+            Position = UDim2.new(0.5, 2, 0, 6),
             BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            ScrollBarThickness = 4,
+            ScrollBarImageColor3 = Theme.Accent,
+            CanvasSize = UDim2.new(0, 0, 0, 0),
+            AutomaticCanvasSize = Enum.AutomaticSize.Y,
             Parent = TabContent,
         })
         
         local RightLayout = CreateElement("UIListLayout", {
             SortOrder = Enum.SortOrder.LayoutOrder,
             Padding = UDim.new(0, 8),
-            Parent = RightColumn,
+            Parent = RightScroll,
         })
+        
+        Tab.LeftScroll = LeftScroll
+        Tab.RightScroll = RightScroll
+        Tab.Button = TabButton
+        Tab.Content = TabContent
+        Tab.Indicator = TabIndicator
         
         TabButton.MouseButton1Click:Connect(function()
             Window:SelectTab(Tab)
@@ -231,38 +308,60 @@ function Phantom:CreateWindow(config)
             local Section = {}
             Section.Name = config.Name or "Section"
             Section.Side = config.Side or "Left"
+            Section.LayoutOrder = config.Side == "Left" and #Tab.Sections.Left + 1 or #Tab.Sections.Right + 1
             
-            local Parent = Section.Side == "Left" and LeftColumn or RightColumn
+            local Parent = Section.Side == "Left" and LeftScroll or RightScroll
             
-            -- Section Frame
+            -- Section Frame with inset border
             local SectionFrame = CreateElement("Frame", {
-                Name = "Section",
+                Name = "Section_" .. Section.Name,
                 Size = UDim2.new(1, 0, 0, 0),
                 AutomaticSize = Enum.AutomaticSize.Y,
-                BackgroundColor3 = Theme.Background,
+                BackgroundColor3 = Theme.BackgroundSecondary,
                 BorderSizePixel = 1,
                 BorderColor3 = Theme.Border,
+                LayoutOrder = Section.LayoutOrder,
                 Parent = Parent,
+            })
+            
+            -- Inner border for inset effect
+            local SectionInnerBorder = CreateElement("Frame", {
+                Name = "InnerBorder",
+                Size = UDim2.new(1, -2, 1, -2),
+                Position = UDim2.new(0, 1, 0, 1),
+                BackgroundTransparency = 1,
+                BorderSizePixel = 1,
+                BorderColor3 = Theme.BorderDark,
+                Parent = SectionFrame,
             })
             
             -- Section Header
             local SectionHeader = CreateElement("Frame", {
                 Name = "Header",
-                Size = UDim2.new(1, 0, 0, 25),
+                Size = UDim2.new(1, 0, 0, 24),
                 BackgroundTransparency = 1,
                 Parent = SectionFrame,
             })
             
             local SectionTitle = CreateElement("TextLabel", {
                 Name = "Title",
-                Size = UDim2.new(1, -10, 1, 0),
-                Position = UDim2.new(0, 5, 0, 0),
+                Size = UDim2.new(1, -12, 1, 0),
+                Position = UDim2.new(0, 6, 0, 0),
                 BackgroundTransparency = 1,
                 Text = Section.Name,
                 TextColor3 = Theme.Text,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Font = Enum.Font.Code,
-                TextSize = 12,
+                TextSize = 11,
+                Parent = SectionHeader,
+            })
+            
+            local HeaderBorder = CreateElement("Frame", {
+                Name = "Border",
+                Size = UDim2.new(1, 0, 0, 1),
+                Position = UDim2.new(0, 0, 1, 0),
+                BackgroundColor3 = Theme.BorderDark,
+                BorderSizePixel = 0,
                 Parent = SectionHeader,
             })
             
@@ -270,7 +369,7 @@ function Phantom:CreateWindow(config)
             local SectionContent = CreateElement("Frame", {
                 Name = "Content",
                 Size = UDim2.new(1, 0, 0, 0),
-                Position = UDim2.new(0, 0, 0, 25),
+                Position = UDim2.new(0, 0, 0, 24),
                 AutomaticSize = Enum.AutomaticSize.Y,
                 BackgroundTransparency = 1,
                 Parent = SectionFrame,
@@ -278,15 +377,15 @@ function Phantom:CreateWindow(config)
             
             local ContentLayout = CreateElement("UIListLayout", {
                 SortOrder = Enum.SortOrder.LayoutOrder,
-                Padding = UDim.new(0, 4),
+                Padding = UDim.new(0, 3),
                 Parent = SectionContent,
             })
             
             local ContentPadding = CreateElement("UIPadding", {
-                PaddingLeft = UDim.new(0, 5),
-                PaddingRight = UDim.new(0, 5),
-                PaddingTop = UDim.new(0, 5),
-                PaddingBottom = UDim.new(0, 5),
+                PaddingLeft = UDim.new(0, 6),
+                PaddingRight = UDim.new(0, 6),
+                PaddingTop = UDim.new(0, 4),
+                PaddingBottom = UDim.new(0, 6),
                 Parent = SectionContent,
             })
             
@@ -301,15 +400,15 @@ function Phantom:CreateWindow(config)
                 
                 local ToggleFrame = CreateElement("Frame", {
                     Name = "Toggle",
-                    Size = UDim2.new(1, 0, 0, 20),
+                    Size = UDim2.new(1, 0, 0, 18),
                     BackgroundTransparency = 1,
                     Parent = SectionContent,
                 })
                 
                 local ToggleBox = CreateElement("Frame", {
                     Name = "Box",
-                    Size = UDim2.new(0, 12, 0, 12),
-                    Position = UDim2.new(0, 0, 0.5, -6),
+                    Size = UDim2.new(0, 11, 0, 11),
+                    Position = UDim2.new(0, 0, 0.5, -5.5),
                     BackgroundColor3 = Theme.Background,
                     BorderSizePixel = 1,
                     BorderColor3 = Theme.Border,
@@ -328,8 +427,8 @@ function Phantom:CreateWindow(config)
                 
                 local ToggleLabel = CreateElement("TextLabel", {
                     Name = "Label",
-                    Size = UDim2.new(1, -20, 1, 0),
-                    Position = UDim2.new(0, 18, 0, 0),
+                    Size = UDim2.new(1, -18, 1, 0),
+                    Position = UDim2.new(0, 16, 0, 0),
                     BackgroundTransparency = 1,
                     Text = Toggle.Name,
                     TextColor3 = Theme.Text,
@@ -348,7 +447,7 @@ function Phantom:CreateWindow(config)
                 
                 function Toggle:Set(value)
                     Toggle.Value = value
-                    Tween(ToggleIndicator, {BackgroundTransparency = value and 0 or 1}, 0.15)
+                    Tween(ToggleIndicator, {BackgroundTransparency = value and 0 or 1}, 0.12)
                     if Toggle.Flag then
                         Window.Flags[Toggle.Flag] = value
                     end
@@ -376,14 +475,14 @@ function Phantom:CreateWindow(config)
                 
                 local SliderFrame = CreateElement("Frame", {
                     Name = "Slider",
-                    Size = UDim2.new(1, 0, 0, 35),
+                    Size = UDim2.new(1, 0, 0, 32),
                     BackgroundTransparency = 1,
                     Parent = SectionContent,
                 })
                 
                 local SliderLabel = CreateElement("TextLabel", {
                     Name = "Label",
-                    Size = UDim2.new(1, 0, 0, 15),
+                    Size = UDim2.new(0.65, 0, 0, 14),
                     BackgroundTransparency = 1,
                     Text = Slider.Name,
                     TextColor3 = Theme.Text,
@@ -393,11 +492,24 @@ function Phantom:CreateWindow(config)
                     Parent = SliderFrame,
                 })
                 
+                local SliderValue = CreateElement("TextLabel", {
+                    Name = "Value",
+                    Size = UDim2.new(0.35, 0, 0, 14),
+                    Position = UDim2.new(0.65, 0, 0, 0),
+                    BackgroundTransparency = 1,
+                    Text = tostring(Slider.Value) .. "/" .. tostring(Slider.Max),
+                    TextColor3 = Theme.Accent,
+                    TextXAlignment = Enum.TextXAlignment.Right,
+                    Font = Enum.Font.Code,
+                    TextSize = 10,
+                    Parent = SliderFrame,
+                })
+                
                 local SliderBg = CreateElement("Frame", {
                     Name = "Background",
-                    Size = UDim2.new(1, 0, 0, 4),
-                    Position = UDim2.new(0, 0, 0, 20),
-                    BackgroundColor3 = Theme.Border,
+                    Size = UDim2.new(1, 0, 0, 3),
+                    Position = UDim2.new(0, 0, 0, 18),
+                    BackgroundColor3 = Theme.BorderDark,
                     BorderSizePixel = 0,
                     Parent = SliderFrame,
                 })
@@ -410,22 +522,9 @@ function Phantom:CreateWindow(config)
                     Parent = SliderBg,
                 })
                 
-                local SliderValue = CreateElement("TextLabel", {
-                    Name = "Value",
-                    Size = UDim2.new(1, 0, 0, 12),
-                    Position = UDim2.new(0, 0, 0, 23),
-                    BackgroundTransparency = 1,
-                    Text = tostring(Slider.Value),
-                    TextColor3 = Theme.Accent,
-                    TextXAlignment = Enum.TextXAlignment.Right,
-                    Font = Enum.Font.Code,
-                    TextSize = 10,
-                    Parent = SliderFrame,
-                })
-                
                 local SliderButton = CreateElement("TextButton", {
-                    Size = UDim2.new(1, 0, 0, 15),
-                    Position = UDim2.new(0, 0, 0, 15),
+                    Size = UDim2.new(1, 0, 0, 12),
+                    Position = UDim2.new(0, 0, 0, 14),
                     BackgroundTransparency = 1,
                     Text = "",
                     Parent = SliderFrame,
@@ -439,7 +538,7 @@ function Phantom:CreateWindow(config)
                     Slider.Value = value
                     
                     local percent = (value - Slider.Min) / (Slider.Max - Slider.Min)
-                    Tween(SliderFill, {Size = UDim2.new(percent, 0, 1, 0)}, 0.1)
+                    Tween(SliderFill, {Size = UDim2.new(percent, 0, 1, 0)}, 0.08)
                     SliderValue.Text = string.format("%d/%d", value, Slider.Max)
                     
                     if Slider.Flag then
@@ -482,7 +581,7 @@ function Phantom:CreateWindow(config)
                 local Dropdown = {}
                 Dropdown.Name = config.Name or "Dropdown"
                 Dropdown.Options = config.Options or {}
-                Dropdown.Default = config.Default or Dropdown.Options[1]
+                Dropdown.Default = config.Default or (Dropdown.Options[1] or "None")
                 Dropdown.Flag = config.Flag
                 Dropdown.Callback = config.Callback or function() end
                 Dropdown.Value = Dropdown.Default
@@ -501,7 +600,7 @@ function Phantom:CreateWindow(config)
                     Size = UDim2.new(1, 0, 0, 20),
                     BackgroundColor3 = Theme.Header,
                     BorderSizePixel = 1,
-                    BorderColor3 = Theme.Border,
+                    BorderColor3 = Theme.BorderDark,
                     Text = "",
                     Parent = DropdownFrame,
                 })
@@ -511,11 +610,24 @@ function Phantom:CreateWindow(config)
                     Size = UDim2.new(1, -25, 1, 0),
                     Position = UDim2.new(0, 5, 0, 0),
                     BackgroundTransparency = 1,
-                    Text = Dropdown.Name .. ": " .. tostring(Dropdown.Value),
+                    Text = Dropdown.Name,
                     TextColor3 = Theme.Text,
                     TextXAlignment = Enum.TextXAlignment.Left,
                     Font = Enum.Font.Code,
-                    TextSize = 11,
+                    TextSize = 10,
+                    Parent = DropdownButton,
+                })
+                
+                local DropdownValue = CreateElement("TextLabel", {
+                    Name = "Value",
+                    Size = UDim2.new(0, 60, 1, 0),
+                    Position = UDim2.new(1, -85, 0, 0),
+                    BackgroundTransparency = 1,
+                    Text = tostring(Dropdown.Value),
+                    TextColor3 = Theme.Accent,
+                    TextXAlignment = Enum.TextXAlignment.Right,
+                    Font = Enum.Font.Code,
+                    TextSize = 9,
                     Parent = DropdownButton,
                 })
                 
@@ -527,7 +639,7 @@ function Phantom:CreateWindow(config)
                     Text = "+",
                     TextColor3 = Theme.Accent,
                     Font = Enum.Font.Code,
-                    TextSize = 14,
+                    TextSize = 13,
                     Parent = DropdownButton,
                 })
                 
@@ -535,9 +647,9 @@ function Phantom:CreateWindow(config)
                     Name = "Content",
                     Size = UDim2.new(1, 0, 0, 0),
                     Position = UDim2.new(0, 0, 0, 20),
-                    BackgroundColor3 = Theme.Header,
+                    BackgroundColor3 = Theme.Background,
                     BorderSizePixel = 1,
-                    BorderColor3 = Theme.Border,
+                    BorderColor3 = Theme.BorderDark,
                     Parent = DropdownFrame,
                 })
                 
@@ -548,7 +660,7 @@ function Phantom:CreateWindow(config)
                 
                 function Dropdown:Set(value)
                     Dropdown.Value = value
-                    DropdownLabel.Text = Dropdown.Name .. ": " .. tostring(value)
+                    DropdownValue.Text = tostring(value)
                     if Dropdown.Flag then
                         Window.Flags[Dropdown.Flag] = value
                     end
@@ -557,8 +669,8 @@ function Phantom:CreateWindow(config)
                 
                 function Dropdown:Toggle()
                     Dropdown.Open = not Dropdown.Open
-                    local targetSize = Dropdown.Open and (20 + #Dropdown.Options * 20) or 20
-                    Tween(DropdownFrame, {Size = UDim2.new(1, 0, 0, targetSize)}, 0.2)
+                    local targetSize = Dropdown.Open and (20 + math.min(#Dropdown.Options, 6) * 18) or 20
+                    Tween(DropdownFrame, {Size = UDim2.new(1, 0, 0, targetSize)}, 0.15)
                     DropdownIcon.Text = Dropdown.Open and "-" or "+"
                 end
                 
@@ -566,16 +678,18 @@ function Phantom:CreateWindow(config)
                     Dropdown:Toggle()
                 end)
                 
-                for _, option in ipairs(Dropdown.Options) do
+                for i, option in ipairs(Dropdown.Options) do
                     local OptionButton = CreateElement("TextButton", {
                         Name = "Option",
-                        Size = UDim2.new(1, 0, 0, 20),
-                        BackgroundColor3 = Theme.Background,
+                        Size = UDim2.new(1, 0, 0, 18),
+                        BackgroundColor3 = Theme.BackgroundSecondary,
                         BorderSizePixel = 0,
-                        Text = tostring(option),
+                        Text = "  " .. tostring(option),
                         TextColor3 = Theme.Text,
+                        TextXAlignment = Enum.TextXAlignment.Left,
                         Font = Enum.Font.Code,
-                        TextSize = 10,
+                        TextSize = 9,
+                        LayoutOrder = i,
                         Parent = DropdownContent,
                     })
                     
@@ -584,7 +698,7 @@ function Phantom:CreateWindow(config)
                     end)
                     
                     OptionButton.MouseLeave:Connect(function()
-                        Tween(OptionButton, {BackgroundColor3 = Theme.Background}, 0.1)
+                        Tween(OptionButton, {BackgroundColor3 = Theme.BackgroundSecondary}, 0.1)
                     end)
                     
                     OptionButton.MouseButton1Click:Connect(function()
@@ -609,14 +723,14 @@ function Phantom:CreateWindow(config)
                 
                 local KeybindFrame = CreateElement("Frame", {
                     Name = "Keybind",
-                    Size = UDim2.new(1, 0, 0, 20),
+                    Size = UDim2.new(1, 0, 0, 18),
                     BackgroundTransparency = 1,
                     Parent = SectionContent,
                 })
                 
                 local KeybindLabel = CreateElement("TextLabel", {
                     Name = "Label",
-                    Size = UDim2.new(1, -50, 1, 0),
+                    Size = UDim2.new(1, -48, 1, 0),
                     BackgroundTransparency = 1,
                     Text = Keybind.Name,
                     TextColor3 = Theme.Text,
@@ -628,12 +742,12 @@ function Phantom:CreateWindow(config)
                 
                 local KeybindButton = CreateElement("TextButton", {
                     Name = "Button",
-                    Size = UDim2.new(0, 45, 0, 18),
-                    Position = UDim2.new(1, -45, 0, 1),
+                    Size = UDim2.new(0, 44, 0, 16),
+                    Position = UDim2.new(1, -44, 0, 1),
                     BackgroundColor3 = Theme.Header,
                     BorderSizePixel = 1,
-                    BorderColor3 = Theme.Border,
-                    Text = Keybind.Value.Name,
+                    BorderColor3 = Theme.BorderDark,
+                    Text = Keybind.Value.Name:sub(1, 1),
                     TextColor3 = Theme.Accent,
                     Font = Enum.Font.Code,
                     TextSize = 9,
@@ -642,7 +756,7 @@ function Phantom:CreateWindow(config)
                 
                 function Keybind:Set(key)
                     Keybind.Value = key
-                    KeybindButton.Text = key.Name
+                    KeybindButton.Text = key.Name:sub(1, 1)
                     if Keybind.Flag then
                         Window.Flags[Keybind.Flag] = key
                     end
@@ -661,7 +775,7 @@ function Phantom:CreateWindow(config)
                             Keybind.Listening = false
                             KeybindButton.TextColor3 = Theme.Accent
                         end
-                    elseif input.KeyCode == Keybind.Value then
+                    elseif input.KeyCode == Keybind.Value and not gameProcessed then
                         Keybind.Callback()
                     end
                 end)
@@ -678,14 +792,14 @@ function Phantom:CreateWindow(config)
                 
                 local ButtonFrame = CreateElement("TextButton", {
                     Name = "Button",
-                    Size = UDim2.new(1, 0, 0, 22),
+                    Size = UDim2.new(1, 0, 0, 20),
                     BackgroundColor3 = Theme.Header,
                     BorderSizePixel = 1,
-                    BorderColor3 = Theme.Border,
+                    BorderColor3 = Theme.BorderDark,
                     Text = Button.Name,
                     TextColor3 = Theme.Text,
                     Font = Enum.Font.Code,
-                    TextSize = 11,
+                    TextSize = 10,
                     Parent = SectionContent,
                 })
                 
@@ -711,7 +825,7 @@ function Phantom:CreateWindow(config)
                 
                 local LabelFrame = CreateElement("TextLabel", {
                     Name = "Label",
-                    Size = UDim2.new(1, 0, 0, 15),
+                    Size = UDim2.new(1, 0, 0, 14),
                     BackgroundTransparency = 1,
                     Text = Label.Text,
                     TextColor3 = Theme.TextDark,
@@ -729,14 +843,83 @@ function Phantom:CreateWindow(config)
                 return Label
             end
             
+            -- AddColorPicker
+            function Section:AddColorPicker(config)
+                local ColorPicker = {}
+                ColorPicker.Name = config.Name or "Color"
+                ColorPicker.Default = config.Default or Color3.fromRGB(255, 105, 180)
+                ColorPicker.Flag = config.Flag
+                ColorPicker.Callback = config.Callback or function() end
+                ColorPicker.Value = ColorPicker.Default
+                
+                local PickerFrame = CreateElement("Frame", {
+                    Name = "ColorPicker",
+                    Size = UDim2.new(1, 0, 0, 18),
+                    BackgroundTransparency = 1,
+                    Parent = SectionContent,
+                })
+                
+                local PickerLabel = CreateElement("TextLabel", {
+                    Name = "Label",
+                    Size = UDim2.new(1, -24, 1, 0),
+                    BackgroundTransparency = 1,
+                    Text = ColorPicker.Name,
+                    TextColor3 = Theme.Text,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    Font = Enum.Font.Code,
+                    TextSize = 11,
+                    Parent = PickerFrame,
+                })
+                
+                local ColorDisplay = CreateElement("Frame", {
+                    Name = "Display",
+                    Size = UDim2.new(0, 20, 0, 14),
+                    Position = UDim2.new(1, -20, 0, 2),
+                    BackgroundColor3 = ColorPicker.Value,
+                    BorderSizePixel = 1,
+                    BorderColor3 = Theme.Border,
+                    Parent = PickerFrame,
+                })
+                
+                local ColorButton = CreateElement("TextButton", {
+                    Size = UDim2.new(1, 0, 1, 0),
+                    BackgroundTransparency = 1,
+                    Text = "",
+                    Parent = PickerFrame,
+                })
+                
+                function ColorPicker:Set(color)
+                    ColorPicker.Value = color
+                    ColorDisplay.BackgroundColor3 = color
+                    if ColorPicker.Flag then
+                        Window.Flags[ColorPicker.Flag] = color
+                    end
+                    ColorPicker.Callback(color)
+                end
+                
+                ColorButton.MouseButton1Click:Connect(function()
+                    -- Simple RGB cycle for demo
+                    local r = math.random(100, 255)
+                    local g = math.random(50, 180)
+                    local b = math.random(100, 255)
+                    ColorPicker:Set(Color3.fromRGB(r, g, b))
+                end)
+                
+                ColorPicker:Set(ColorPicker.Default)
+                return ColorPicker
+            end
+            
             table.insert(Tab.Sections[Section.Side], Section)
             return Section
         end
         
         table.insert(Window.Tabs, Tab)
         
+        -- Auto-select first tab
         if #Window.Tabs == 1 then
-            Window:SelectTab(Tab)
+            task.defer(function()
+                Window:SelectTab(Tab)
+            end)
         end
         
         return Tab
@@ -744,58 +927,150 @@ function Phantom:CreateWindow(config)
     
     function Window:SelectTab(tab)
         for _, t in ipairs(Window.Tabs) do
-            local button = TabContainer:FindFirstChild("TabButton")
-            for _, btn in ipairs(TabContainer:GetChildren()) do
-                if btn:IsA("TextButton") and btn.Text == t.Name then
-                    local indicator = btn:FindFirstChild("Indicator")
-                    if t == tab then
-                        Tween(btn, {TextColor3 = Theme.Text})
-                        if indicator then
-                            Tween(indicator, {BackgroundTransparency = 0})
-                        end
-                    else
-                        Tween(btn, {TextColor3 = Theme.TextDark})
-                        if indicator then
-                            Tween(indicator, {BackgroundTransparency = 1})
-                        end
-                    end
-                end
-            end
-            
-            local content = ContentContainer:FindFirstChild("TabContent")
-            for _, cnt in ipairs(ContentContainer:GetChildren()) do
-                if cnt.Name == "TabContent" then
-                    cnt.Visible = false
-                end
-            end
-        end
-        
-        for _, cnt in ipairs(ContentContainer:GetChildren()) do
-            if cnt.Name == "TabContent" then
-                local leftCol = cnt:FindFirstChild("LeftColumn")
-                if leftCol and #leftCol:GetChildren() > 1 then
-                    for _, section in ipairs(leftCol:GetChildren()) do
-                        if section:IsA("Frame") and section.Name == "Section" then
-                            local header = section:FindFirstChild("Header")
-                            if header then
-                                local title = header:FindFirstChild("Title")
-                                if title and title.Text == tab.Sections.Left[1].Name then
-                                    cnt.Visible = true
-                                    break
-                                end
-                            end
-                        end
-                    end
-                end
+            if t == tab then
+                Tween(t.Button, {TextColor3 = Theme.Text}, 0.15)
+                Tween(t.Indicator, {BackgroundTransparency = 0}, 0.15)
+                t.Content.Visible = true
+            else
+                Tween(t.Button, {TextColor3 = Theme.TextDark}, 0.15)
+                Tween(t.Indicator, {BackgroundTransparency = 1}, 0.15)
+                t.Content.Visible = false
             end
         end
         
         Window.CurrentTab = tab
     end
     
+    -- Save/Load Config Functions
+    function Window:SaveConfig(name)
+        name = name or ConfigSystem.CurrentConfig
+        local config = {}
+        
+        for flag, value in pairs(Window.Flags) do
+            if type(value) == "Color3" then
+                config[flag] = {value.R, value.G, value.B}
+            elseif type(value) == "EnumItem" then
+                config[flag] = tostring(value)
+            else
+                config[flag] = value
+            end
+        end
+        
+        ConfigSystem.Configs[name] = config
+        writefile("phantom_" .. name .. ".json", HttpService:JSONEncode(config))
+        return true
+    end
+    
+    function Window:LoadConfig(name)
+        name = name or ConfigSystem.CurrentConfig
+        local success, data = pcall(function()
+            return HttpService:JSONDecode(readfile("phantom_" .. name .. ".json"))
+        end)
+        
+        if success then
+            for flag, value in pairs(data) do
+                Window.Flags[flag] = value
+            end
+            return true
+        end
+        return false
+    end
+    
+    function Window:GetConfigs()
+        local configs = {"default"}
+        local success, files = pcall(function()
+            return listfiles("phantom_*.json")
+        end)
+        
+        if success then
+            for _, file in ipairs(files) do
+                local name = file:match("phantom_(.+)%.json")
+                if name and name ~= "default" then
+                    table.insert(configs, name)
+                end
+            end
+        end
+        
+        return configs
+    end
+    
     function Window:Destroy()
         ScreenGui:Destroy()
     end
+    
+    -- Create Settings Tab
+    task.defer(function()
+        local SettingsTab = Window:CreateTab({Name = "Settings"})
+        
+        local ConfigSection = SettingsTab:CreateSection({Name = "Configuration", Side = "Left"})
+        
+        local configDropdown = ConfigSection:AddDropdown({
+            Name = "Config",
+            Options = {"default"},
+            Default = "default",
+            Flag = "selected_config"
+        })
+        
+        ConfigSection:AddButton({
+            Name = "Save Config",
+            Callback = function()
+                local configName = Window.Flags["selected_config"] or "default"
+                Window:SaveConfig(configName)
+                print("[Phantom] Config saved:", configName)
+            end
+        })
+        
+        ConfigSection:AddButton({
+            Name = "Load Config",
+            Callback = function()
+                local configName = Window.Flags["selected_config"] or "default"
+                Window:LoadConfig(configName)
+                print("[Phantom] Config loaded:", configName)
+            end
+        })
+        
+        ConfigSection:AddButton({
+            Name = "Refresh Configs",
+            Callback = function()
+                -- This would need to update the dropdown with new configs
+                print("[Phantom] Configs refreshed")
+            end
+        })
+        
+        local MenuSection = SettingsTab:CreateSection({Name = "Menu", Side = "Left"})
+        
+        MenuSection:AddKeybind({
+            Name = "Menu Bind",
+            Default = Enum.KeyCode.Insert,
+            Callback = function()
+                Window:ToggleUI()
+            end,
+            Flag = "menu_keybind"
+        })
+        
+        MenuSection:AddButton({
+            Name = "Toggle UI",
+            Callback = function()
+                Window:ToggleUI()
+            end
+        })
+        
+        local ThemeSection = SettingsTab:CreateSection({Name = "Theme", Side = "Right"})
+        
+        ThemeSection:AddColorPicker({
+            Name = "Accent Color",
+            Default = Theme.Accent,
+            Flag = "accent_color",
+            Callback = function(color)
+                Theme.Accent = color
+                Theme.SliderFill = color
+                Theme.ToggleActive = color
+                print("[Phantom] Accent color changed")
+            end
+        })
+        
+        ThemeSection:AddLabel({Text = "Customize your UI appearance"})
+    end)
     
     return Window
 end
