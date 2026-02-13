@@ -1,6 +1,6 @@
 --[[
-    Phantom UI Library v2.2
-    FIXED: Tab positioning issue - tabs now properly contained in menu
+    Phantom UI Library v2.3
+    FIXED: Tab positioning - tabs now fully contained within menu frame
     Theme: Dark Mode with Pink Accents
 ]]
 
@@ -77,7 +77,7 @@ function Phantom:CreateWindow(config)
         ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
     end
     
-    -- Main Frame
+    -- Main Frame - FIXED: ClipsDescendants = true to contain tabs
     local MainFrame = CreateElement("Frame", {
         Name = "MainFrame",
         Size = UDim2.new(0, 700, 0, 520),
@@ -85,7 +85,7 @@ function Phantom:CreateWindow(config)
         BackgroundColor3 = Theme.Background,
         BorderSizePixel = 1,
         BorderColor3 = Theme.Border,
-        ClipsDescendants = false,
+        ClipsDescendants = true,  -- CHANGED: true instead of false
         Parent = ScreenGui,
     })
     
@@ -136,14 +136,14 @@ function Phantom:CreateWindow(config)
         Parent = TitleBar,
     })
     
-    -- Tab Container
+    -- Tab Container - FIXED: ClipsDescendants = true to prevent overflow
     local TabContainer = CreateElement("Frame", {
         Name = "TabContainer",
         Size = UDim2.new(1, 0, 0, 26),
         Position = UDim2.new(0, 0, 0, 28),
         BackgroundColor3 = Theme.BackgroundSecondary,
         BorderSizePixel = 0,
-        ClipsDescendants = false,
+        ClipsDescendants = true,  -- CHANGED: true instead of false
         ZIndex = 3,
         Parent = MainFrame,
     })
@@ -151,6 +151,7 @@ function Phantom:CreateWindow(config)
     local TabContainerPadding = CreateElement("UIPadding", {
         PaddingLeft = UDim.new(0, 4),
         PaddingTop = UDim.new(0, 2),
+        PaddingRight = UDim.new(0, 4),  -- ADDED: right padding
         Parent = TabContainer,
     })
     
