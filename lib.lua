@@ -1,6 +1,6 @@
 --[[
-    Phantom UI Library v3.0
-    Complete remake with properly centered tabs
+    Phantom UI Library v3.0 - Complete Standalone Version
+    Everything in one file - just execute and it works!
     Theme: Dark Mode with Pink Accents
 ]]
 
@@ -641,7 +641,6 @@ function Phantom:CreateWindow(config)
                 Keybind.Callback = config.Callback or function() end
                 Keybind.Value = Keybind.Default
                 Keybind.Listening = false
-                Keybind.Mode = config.Mode or "Toggle" -- Toggle or Hold
                 
                 local KeybindFrame = CreateElement("Frame", {
                     Name = "Keybind",
@@ -690,38 +689,17 @@ function Phantom:CreateWindow(config)
                     KeybindButton.TextColor3 = Theme.Text
                 end)
                 
-                -- Global keybind listener
-                local connection
-                connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+                UserInputService.InputBegan:Connect(function(input, gameProcessed)
                     if Keybind.Listening then
                         if input.UserInputType == Enum.UserInputType.Keyboard then
                             Keybind:Set(input.KeyCode)
                             Keybind.Listening = false
                             KeybindButton.TextColor3 = Theme.Accent
                         end
-                    else
-                        if input.KeyCode == Keybind.Value then
-                            if Keybind.Mode == "Toggle" then
-                                Keybind.Callback()
-                            end
-                        end
+                    elseif input.KeyCode == Keybind.Value and not gameProcessed then
+                        Keybind.Callback()
                     end
                 end)
-                
-                -- Hold mode support
-                if Keybind.Mode == "Hold" then
-                    UserInputService.InputBegan:Connect(function(input)
-                        if input.KeyCode == Keybind.Value and not Keybind.Listening then
-                            Keybind.Callback(true)
-                        end
-                    end)
-                    
-                    UserInputService.InputEnded:Connect(function(input)
-                        if input.KeyCode == Keybind.Value and not Keybind.Listening then
-                            Keybind.Callback(false)
-                        end
-                    end)
-                end
                 
                 Keybind:Set(Keybind.Default)
                 return Keybind
@@ -794,13 +772,11 @@ function Phantom:CreateWindow(config)
                 ColorPicker.Flag = config.Flag
                 ColorPicker.Callback = config.Callback or function() end
                 ColorPicker.Value = ColorPicker.Default
-                ColorPicker.Open = false
                 
                 local PickerFrame = CreateElement("Frame", {
                     Name = "ColorPicker",
                     Size = UDim2.new(1, 0, 0, 20),
                     BackgroundTransparency = 1,
-                    ClipsDescendants = false,
                     Parent = SectionContent,
                 })
                 
@@ -818,221 +794,18 @@ function Phantom:CreateWindow(config)
                 
                 local ColorDisplay = CreateElement("TextButton", {
                     Name = "Display",
-                    Size = UDim2.new(0, 20, 0, 14),
-                    Position = UDim2.new(1, -20, 0, 3),
+                    Size = UDim2.new(0, 24, 0, 16),
+                    Position = UDim2.new(1, -24, 0, 2),
                     BackgroundColor3 = ColorPicker.Value,
                     BorderSizePixel = 1,
                     BorderColor3 = Theme.Border,
                     Text = "",
-                    ZIndex = 5,
                     Parent = PickerFrame,
                 })
-                
-                -- Color Picker Popup
-                local PickerPopup = CreateElement("Frame", {
-                    Name = "Popup",
-                    Size = UDim2.new(0, 200, 0, 150),
-                    Position = UDim2.new(1, 5, 0, 0),
-                    BackgroundColor3 = Theme.BackgroundSecondary,
-                    BorderSizePixel = 1,
-                    BorderColor3 = Theme.Border,
-                    Visible = false,
-                    ZIndex = 10,
-                    Parent = PickerFrame,
-                })
-                
-                local PopupPadding = CreateElement("UIPadding", {
-                    PaddingLeft = UDim.new(0, 8),
-                    PaddingRight = UDim.new(0, 8),
-                    PaddingTop = UDim.new(0, 8),
-                    PaddingBottom = UDim.new(0, 8),
-                    Parent = PickerPopup,
-                })
-                
-                -- RGB Sliders
-                local sliders = {}
-                local sliderNames = {"R", "G", "B"}
-                local startColor = {
-                    math.floor(ColorPicker.Value.R * 255),
-                    math.floor(ColorPicker.Value.G * 255),
-                    math.floor(ColorPicker.Value.B * 255)
-                }
-                
-                for i, name in ipairs(sliderNames) do
-                    local SliderFrame = CreateElement("Frame", {
-                        Name = name .. "Slider",
-                        Size = UDim2.new(1, 0, 0, 30),
-                        Position = UDim2.new(0, 0, 0, (i-1) * 35),
-                        BackgroundTransparency = 1,
-                        ZIndex = 11,
-                        Parent = PickerPopup,
-                    })
-                    
-                    local SliderLabel = CreateElement("TextLabel", {
-                        Size = UDim2.new(0, 12, 0, 14),
-                        BackgroundTransparency = 1,
-                        Text = name,
-                        TextColor3 = Theme.Text,
-                        TextXAlignment = Enum.TextXAlignment.Left,
-                        Font = Enum.Font.Code,
-                        TextSize = 11,
-                        ZIndex = 11,
-                        Parent = SliderFrame,
-                    })
-                    
-                    local SliderValue = CreateElement("TextLabel", {
-                        Size = UDim2.new(0, 30, 0, 14),
-                        Position = UDim2.new(1, -30, 0, 0),
-                        BackgroundTransparency = 1,
-                        Text = tostring(startColor[i]),
-                        TextColor3 = Theme.Accent,
-                        TextXAlignment = Enum.TextXAlignment.Right,
-                        Font = Enum.Font.Code,
-                        TextSize = 10,
-                        ZIndex = 11,
-                        Parent = SliderFrame,
-                    })
-                    
-                    local SliderBg = CreateElement("Frame", {
-                        Size = UDim2.new(1, -45, 0, 4),
-                        Position = UDim2.new(0, 18, 0, 18),
-                        BackgroundColor3 = Theme.Border,
-                        BorderSizePixel = 0,
-                        ZIndex = 11,
-                        Parent = SliderFrame,
-                    })
-                    
-                    local SliderFill = CreateElement("Frame", {
-                        Size = UDim2.new(startColor[i] / 255, 0, 1, 0),
-                        BackgroundColor3 = Theme.Accent,
-                        BorderSizePixel = 0,
-                        ZIndex = 11,
-                        Parent = SliderBg,
-                    })
-                    
-                    local SliderButton = CreateElement("TextButton", {
-                        Size = UDim2.new(1, -45, 0, 14),
-                        Position = UDim2.new(0, 18, 0, 14),
-                        BackgroundTransparency = 1,
-                        Text = "",
-                        ZIndex = 12,
-                        Parent = SliderFrame,
-                    })
-                    
-                    sliders[i] = {
-                        Value = startColor[i],
-                        Fill = SliderFill,
-                        Label = SliderValue,
-                        Background = SliderBg,
-                        Button = SliderButton,
-                    }
-                end
-                
-                -- Preview box
-                local PreviewBox = CreateElement("Frame", {
-                    Size = UDim2.new(1, 0, 0, 30),
-                    Position = UDim2.new(0, 0, 0, 110),
-                    BackgroundColor3 = ColorPicker.Value,
-                    BorderSizePixel = 1,
-                    BorderColor3 = Theme.Border,
-                    ZIndex = 11,
-                    Parent = PickerPopup,
-                })
-                
-                local function UpdateColor()
-                    local r = sliders[1].Value / 255
-                    local g = sliders[2].Value / 255
-                    local b = sliders[3].Value / 255
-                    local color = Color3.new(r, g, b)
-                    
-                    ColorPicker.Value = color
-                    ColorDisplay.BackgroundColor3 = color
-                    PreviewBox.BackgroundColor3 = color
-                    
-                    if ColorPicker.Flag then
-                        Window.Flags[ColorPicker.Flag] = color
-                    end
-                    
-                    ColorPicker.Callback(color)
-                end
-                
-                -- RGB Slider Logic
-                for i, slider in ipairs(sliders) do
-                    local dragging = false
-                    
-                    local function UpdateSlider(input)
-                        local pos = math.clamp((input.Position.X - slider.Background.AbsolutePosition.X) / slider.Background.AbsoluteSize.X, 0, 1)
-                        local value = math.floor(pos * 255)
-                        slider.Value = value
-                        slider.Label.Text = tostring(value)
-                        Tween(slider.Fill, {Size = UDim2.new(pos, 0, 1, 0)}, 0.05)
-                        UpdateColor()
-                    end
-                    
-                    slider.Button.InputBegan:Connect(function(input)
-                        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                            dragging = true
-                            UpdateSlider(input)
-                        end
-                    end)
-                    
-                    slider.Button.InputEnded:Connect(function(input)
-                        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                            dragging = false
-                        end
-                    end)
-                    
-                    UserInputService.InputChanged:Connect(function(input)
-                        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-                            UpdateSlider(input)
-                        end
-                    end)
-                end
-                
-                -- Toggle popup
-                ColorDisplay.MouseButton1Click:Connect(function()
-                    ColorPicker.Open = not ColorPicker.Open
-                    PickerPopup.Visible = ColorPicker.Open
-                end)
-                
-                -- Close when clicking outside
-                UserInputService.InputBegan:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        if ColorPicker.Open then
-                            local mousePos = input.Position
-                            local popupPos = PickerPopup.AbsolutePosition
-                            local popupSize = PickerPopup.AbsoluteSize
-                            
-                            if mousePos.X < popupPos.X or mousePos.X > popupPos.X + popupSize.X or
-                               mousePos.Y < popupPos.Y or mousePos.Y > popupPos.Y + popupSize.Y then
-                                local displayPos = ColorDisplay.AbsolutePosition
-                                local displaySize = ColorDisplay.AbsoluteSize
-                                
-                                if mousePos.X < displayPos.X or mousePos.X > displayPos.X + displaySize.X or
-                                   mousePos.Y < displayPos.Y or mousePos.Y > displayPos.Y + displaySize.Y then
-                                    ColorPicker.Open = false
-                                    PickerPopup.Visible = false
-                                end
-                            end
-                        end
-                    end
-                end)
                 
                 function ColorPicker:Set(color)
                     ColorPicker.Value = color
                     ColorDisplay.BackgroundColor3 = color
-                    PreviewBox.BackgroundColor3 = color
-                    
-                    -- Update sliders
-                    sliders[1].Value = math.floor(color.R * 255)
-                    sliders[2].Value = math.floor(color.G * 255)
-                    sliders[3].Value = math.floor(color.B * 255)
-                    
-                    for i, slider in ipairs(sliders) do
-                        slider.Label.Text = tostring(slider.Value)
-                        slider.Fill.Size = UDim2.new(slider.Value / 255, 0, 1, 0)
-                    end
-                    
                     if ColorPicker.Flag then
                         Window.Flags[ColorPicker.Flag] = color
                     end
@@ -1118,4 +891,105 @@ function Phantom:CreateWindow(config)
     return Window
 end
 
-return Phantom
+-- ==========================================
+-- AUTO-EXECUTE EXAMPLE
+-- ==========================================
+
+-- Create the window
+local Window = Phantom:CreateWindow({
+    Name = "Phantom UI v3.0"
+})
+
+-- Main Tab
+local MainTab = Window:CreateTab({Name = "Main"})
+
+local CombatSection = MainTab:CreateSection({Name = "Combat", Side = "Left"})
+CombatSection:AddToggle({Name = "Auto Attack", Default = false, Callback = function(v) print("Auto Attack:", v) end})
+CombatSection:AddToggle({Name = "Auto Dodge", Default = true, Callback = function(v) print("Auto Dodge:", v) end})
+CombatSection:AddSlider({Name = "Attack Speed", Min = 0, Max = 100, Default = 50, Callback = function(v) print("Attack Speed:", v) end})
+CombatSection:AddSlider({Name = "Damage Multiplier", Min = 1, Max = 10, Default = 1, Callback = function(v) print("Damage Mult:", v) end})
+CombatSection:AddDropdown({Name = "Weapon", Options = {"Sword", "Axe", "Bow", "Staff"}, Default = "Sword", Callback = function(v) print("Weapon:", v) end})
+
+local MovementSection = MainTab:CreateSection({Name = "Movement", Side = "Right"})
+MovementSection:AddToggle({Name = "Speed Boost", Default = false, Callback = function(v) 
+    if v and game.Players.LocalPlayer.Character then
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 50
+    else
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 16
+    end
+end})
+MovementSection:AddSlider({Name = "Walk Speed", Min = 16, Max = 200, Default = 16, Callback = function(v) 
+    if game.Players.LocalPlayer.Character then
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = v
+    end
+end})
+MovementSection:AddSlider({Name = "Jump Power", Min = 50, Max = 300, Default = 50, Callback = function(v)
+    if game.Players.LocalPlayer.Character then
+        game.Players.LocalPlayer.Character.Humanoid.JumpPower = v
+    end
+end})
+MovementSection:AddKeybind({Name = "Teleport", Default = Enum.KeyCode.T, Callback = function() print("Teleport!") end})
+
+-- Visual Tab
+local VisualTab = Window:CreateTab({Name = "Visual"})
+
+local ESPSection = VisualTab:CreateSection({Name = "ESP", Side = "Left"})
+ESPSection:AddToggle({Name = "Player ESP", Default = false, Callback = function(v) print("Player ESP:", v) end})
+ESPSection:AddToggle({Name = "Name ESP", Default = false, Callback = function(v) print("Name ESP:", v) end})
+ESPSection:AddColorPicker({Name = "ESP Color", Default = Color3.fromRGB(255, 0, 0), Callback = function(c) print("ESP Color:", c) end})
+ESPSection:AddSlider({Name = "ESP Distance", Min = 100, Max = 5000, Default = 1000, Callback = function(v) print("Distance:", v) end})
+
+local UISection = VisualTab:CreateSection({Name = "UI Settings", Side = "Right"})
+UISection:AddToggle({Name = "Show FPS", Default = true, Callback = function(v) print("Show FPS:", v) end})
+UISection:AddColorPicker({Name = "Accent Color", Default = Color3.fromRGB(255, 105, 180), Callback = function(c) print("Accent:", c) end})
+UISection:AddLabel({Text = "UI Customization Options"})
+UISection:AddSlider({Name = "UI Scale", Min = 50, Max = 150, Default = 100, Callback = function(v) print("Scale:", v .. "%") end})
+
+-- Misc Tab
+local MiscTab = Window:CreateTab({Name = "Misc"})
+
+local AutoSection = MiscTab:CreateSection({Name = "Automation", Side = "Left"})
+AutoSection:AddToggle({Name = "Auto Farm", Default = false, Callback = function(v) print("Auto Farm:", v) end})
+AutoSection:AddToggle({Name = "Auto Collect", Default = false, Callback = function(v) print("Auto Collect:", v) end})
+AutoSection:AddDropdown({Name = "Farm Mode", Options = {"Nearest", "Strongest", "Weakest"}, Default = "Nearest", Callback = function(v) print("Mode:", v) end})
+AutoSection:AddButton({Name = "Start Farming", Callback = function() 
+    print("Started!")
+    game.StarterGui:SetCore("SendNotification", {Title = "Farm", Text = "Started!", Duration = 2})
+end})
+
+local TeleportSection = MiscTab:CreateSection({Name = "Teleports", Side = "Right"})
+TeleportSection:AddDropdown({Name = "Location", Options = {"Spawn", "Shop", "Arena", "Boss"}, Default = "Spawn"})
+TeleportSection:AddButton({Name = "Teleport", Callback = function() print("Teleporting...") end})
+TeleportSection:AddLabel({Text = "Select then click Teleport"})
+
+-- Settings Tab
+local SettingsTab = Window:CreateTab({Name = "Settings"})
+
+local ConfigSection = SettingsTab:CreateSection({Name = "Config", Side = "Left"})
+ConfigSection:AddButton({Name = "Save Config", Callback = function() 
+    if Window:SaveConfig("default") then
+        game.StarterGui:SetCore("SendNotification", {Title = "Config", Text = "Saved!", Duration = 3})
+    end
+end})
+ConfigSection:AddButton({Name = "Load Config", Callback = function() 
+    if Window:LoadConfig("default") then
+        game.StarterGui:SetCore("SendNotification", {Title = "Config", Text = "Loaded!", Duration = 3})
+    end
+end})
+
+local MenuSection = SettingsTab:CreateSection({Name = "Menu", Side = "Right"})
+MenuSection:AddKeybind({Name = "Toggle UI", Default = Enum.KeyCode.RightShift, Callback = function() Window:ToggleUI() end})
+MenuSection:AddLabel({Text = "Press Right Shift to toggle"})
+MenuSection:AddButton({Name = "Destroy UI", Callback = function() Window:Destroy() end})
+
+-- Welcome
+game.StarterGui:SetCore("SendNotification", {
+    Title = "Phantom UI";
+    Text = "Loaded! Press Right Shift to toggle.";
+    Duration = 5;
+})
+
+print("=================================")
+print("Phantom UI v3.0 - Loaded!")
+print("Press Right Shift to toggle menu")
+print("=================================")
